@@ -19,3 +19,14 @@ Structure:
 * `messaging-service:chats:${username1 + username2, where username1 < username2 }`: A list containing messages as json structs
 * `messaging-service:sessions:${uuid}`: A string representing the username who signed for this session
 
+## Project Todos
+
+* [X] Add authentication.
+* [X] Add basic logging.
+* [ ] Add send message to other `user` via username (creating a chat).
+* [ ] Add get last (n) messages from chat with other `user` via username.
+* [ ] Add block other `user` via username.
+* [ ] Go Over errors and store on log server (basic redis server for now, can be replaced with ELK stack in the future).
+* [ ] Add acitivity log tracking (store signin attempts).
+* [ ] Add extra try catch to make sure only what is meant to be shown in error messages is shown to the user.
+* [ ] Setup docker-compose for this project with (1x api (nodejs), 1x database (redis), 1x logserver (redis)).
