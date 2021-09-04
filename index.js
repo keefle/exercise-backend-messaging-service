@@ -79,6 +79,14 @@ app.post("/chat/messages/get", (req, res) => {
     );
 });
 
+app.post("/users/block", (req, res) => {
+  blockUser({ ...req.body, ...req.signedCookies })
+    .then(({ msg }) => res.status(200).json({ result: "ok", message: msg }))
+    .catch((err) =>
+      res.status(500).json({ result: "errored", message: err.message })
+    );
+});
+
 async function deauthenticateUser({ sessionId }) {
   log.print(`attempt to deauthenticate user via session id`);
   if (!sessionId) {
@@ -104,6 +112,58 @@ async function deauthenticateUser({ sessionId }) {
     .catch((err) => {
       const nerr = new Error(
         `internal server error when singing out user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    });
+}
+
+async function blockUser({ sessionId, toBlockUsername }) {
+  // TODO[mohammad]: Should one be able to block themselves?
+  log.print(`attempt to deauthenticate user via session id`);
+  if (!sessionId) {
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  if (!blockedUsername) {
+    const err = new Error(`user block request is missing username to block`);
+    log.error(err);
+    throw err;
+  }
+
+  const sessionKey = `messaging-service:sessions`;
+  if (!(await redis.hexists(sessionKey, sessionId))) {
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  const username = await redis.hget(sessionKey, sessionId);
+
+  const chatsWithKey = `messaging-service:users:${username}:chats-with`; // contains a set of other users the user chats with
+  const chatsInfoKey = `messaging-service:users:${username}:chats-info`; // contains a map from other users the user chats with to their respective prefrences (block/mute/etc)
+
+  const dbpromises = Promise.all([
+    redis.sadd(chatsWithKey, toBlockUsername),
+    redis.hset(
+      chatsInfoKey,
+      toBlockUsername,
+      JSON.stringify({ username: toBlockUsername, blocked: true })
+    ),
+  ]);
+
+  return dbpromises
+    .then(() => {
+      const result = {
+        msg: `successfully blocked user with username (${toBlockUsername})`,
+      };
+
+      log.print(result.msg);
+      return result;
+    })
+    .catch((err) => {
+      const nerr = new Error(
+        `internal server error when blocking user with username (${toBlockUsername})`,
         { cause: err }
       );
 
