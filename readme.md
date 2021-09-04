@@ -25,7 +25,7 @@ Structure:
 * [X] Add basic logging.
 * [X] Add send message to other `user` via username (creating a chat).
 * [X] Add get last (n) messages from chat with other `user` via username.
-* [ ] Add block other `user` via username.
+* [X] Add block other `user` via username.
 * [ ] Go Over errors and store on log server (basic redis server for now, can be replaced with ELK stack in the future).
 * [ ] Add acitivity log tracking (store signin attempts).
 * [ ] Add extra try catch to make sure only what is meant to be shown in error messages is shown to the user.
