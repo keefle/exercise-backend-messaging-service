@@ -2,7 +2,7 @@
   "name": "messaging-service",
   "version": "0.0.1",
   "main": "index.js",
-  "license": "GPLv3",
+  "license": "GPL-3.0",
   "type": "module",
   "dependencies": {
     "bcryptjs": "^2.4.3",

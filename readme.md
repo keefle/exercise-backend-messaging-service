@@ -26,7 +26,7 @@ Structure:
 * [X] Add send message to other `user` via username (creating a chat).
 * [X] Add get last (n) messages from chat with other `user` via username.
 * [X] Add block other `user` via username.
+* [X] Setup docker-compose for this project with (api (nodejs), database (redis))
 * [ ] Go Over errors and store on log server (basic redis server for now, can be replaced with ELK stack in the future).
 * [ ] Add acitivity log tracking (store signin attempts).
 * [ ] Add extra try catch to make sure only what is meant to be shown in error messages is shown to the user.
-* [ ] Setup docker-compose for this project with (1x api (nodejs), 1x database (redis), 1x logserver (redis)).
