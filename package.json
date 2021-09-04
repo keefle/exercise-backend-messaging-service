@@ -19,6 +19,8 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development nodemon index.js",
-    "prod": "NODE_ENV=production node index.js"
+    "prod": "NODE_ENV=production node index.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules NODE_ENV=testing jest --verbose --watch  --detectOpenHandles",
+    "watch": "NODE_OPTIONS=--experimental-vm-modules NODE_ENV=testing jest --verbose"
   }
 }
