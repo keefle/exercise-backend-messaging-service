@@ -61,6 +61,24 @@ app.post("/auth/signup", (req, res) => {
     );
 });
 
+app.post("/chat/messages/send", (req, res) => {
+  sendMessage({ ...req.body, ...req.signedCookies })
+    .then(({ msg }) => res.status(200).json({ result: "ok", message: msg }))
+    .catch((err) =>
+      res.status(500).json({ result: "errored", message: err.message })
+    );
+});
+
+app.post("/chat/messages/get", (req, res) => {
+  getMessages({ ...req.body, ...req.signedCookies })
+    .then(({ msg, data }) =>
+      res.status(200).json({ result: "ok", message: msg, data: data })
+    )
+    .catch((err) =>
+      res.status(500).json({ result: "errored", message: err.message })
+    );
+});
+
 async function deauthenticateUser({ sessionId }) {
   log.print(`attempt to deauthenticate user via session id`);
   if (!sessionId) {
@@ -73,9 +91,25 @@ async function deauthenticateUser({ sessionId }) {
   }
 
   const username = await redis.hget(sessionKey, sessionId);
-  await redis.hdel(sessionKey, sessionId);
 
-  return { msg: `successfully signed out user with username (${username})` };
+  return redis
+    .hdel(sessionKey, sessionId)
+    .then(() => {
+      const result = {
+        msg: `successfully signed out user with username (${username})`,
+      };
+      log.print(result);
+      return result;
+    })
+    .catch((err) => {
+      const nerr = new Error(
+        `internal server error when singing out user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    });
 }
 
 async function authenticateUser({ username, password }) {
@@ -124,6 +158,109 @@ async function authenticateUser({ username, password }) {
     .catch((err) => {
       const nerr = new Error(
         `internal server error when singing in user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    });
+}
+
+async function getMessages({ sessionId, withUsername, noMsgs }) {
+  log.print(
+    `attempt to get messages from chat with user with username (${withUsername})`
+  );
+
+  if (!sessionId) {
+    // TODO[mohammad]: make error message more clear
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  if (!(withUsername && noMsgs)) {
+    throw new Error(
+      `get messages request is missing username or number of messages`
+    );
+  }
+
+  const sessionKey = `messaging-service:sessions`;
+  if (!(await redis.hexists(sessionKey, sessionId))) {
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  const username = await redis.hget(sessionKey, sessionId);
+
+  const chatId = [username, withUsername].sort().join("-with-");
+
+  const chatKey = `messaging-service:chats:${chatId}`;
+
+  return redis
+    .lrange(chatKey, 0, noMsgs)
+    .then((data) => data.map((msg) => JSON.parse(msg)))
+    .then((chatMsgs) => {
+      const result = {
+        msg: `successfully got messages from chat between user with username (${username}) and user with username (${withUsername})`,
+        data: chatMsgs,
+      };
+      log.print(result);
+      return result;
+    })
+    .catch((err) => {
+      const nerr = new Error(
+        `internal server error when getting messages from chat between user with username (${username}) to user with username (${withUsername})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    });
+}
+
+async function sendMessage({ sessionId, receiverUsername, content }) {
+  log.print(
+    `attempt to send message to user with username (${receiverUsername})`
+  );
+
+  if (!sessionId) {
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  if (!(receiverUsername && content)) {
+    throw new Error(
+      `send message request is missing receiver username or content of message`
+    );
+  }
+
+  const sessionKey = `messaging-service:sessions`;
+  if (!(await redis.hexists(sessionKey, sessionId))) {
+    throw new Error(`sessionId provided is not signed in`);
+  }
+
+  const senderUsername = await redis.hget(sessionKey, sessionId);
+
+  const chatId = [senderUsername, receiverUsername].sort().join("-with-");
+
+  const chatKey = `messaging-service:chats:${chatId}`;
+
+  return redis
+    .lpush(
+      chatKey,
+      JSON.stringify({
+        from: senderUsername,
+        to: receiverUsername,
+        content: content,
+        id: uuidv4(),
+      })
+    )
+    .then(() => {
+      const result = {
+        msg: `successfully sent message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
+      };
+      log.print(result);
+      return result;
+    })
+    .catch((err) => {
+      const nerr = new Error(
+        `internal server error when sending message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
         { cause: err }
       );
 
