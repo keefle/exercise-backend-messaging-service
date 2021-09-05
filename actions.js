@@ -79,6 +79,10 @@ const actions = function (store, log) {
       const err = new Error(
         `username (${username}) and/or password are incorrect`
       );
+      store.logSigninAttempt(username, {
+        at: Date().toString(),
+        result: "Failed",
+      });
       log.error(err);
       throw err;
     }
@@ -91,6 +95,10 @@ const actions = function (store, log) {
           sessionId: sessionId,
         };
 
+        store.logSigninAttempt(username, {
+          at: Date().toString(),
+          result: "Succeeded",
+        });
         log.print(result.msg);
         return result;
       })
@@ -139,6 +147,39 @@ const actions = function (store, log) {
       });
   }
 
+  async function getActivity({ sessionId, noActivity }) {
+    log.print(`attempt to get sign in activity`);
+
+    if (!(sessionId && noActivity)) {
+      throw new Error(
+        `get activity log request is missing number of activities`
+      );
+    }
+
+    const username = await store.getUserBySessionId(sessionId);
+
+    return store
+      .getActivityRange(username, 0, noActivity)
+      .then((activity) => {
+        const result = {
+          msg: `successfully got activity log`,
+          data: activity,
+        };
+        log.print(result);
+        return result;
+      })
+      .catch((err) => {
+        const nerr = new Error(
+          `internal server error when getting activity log`,
+          {
+            cause: err,
+          }
+        );
+
+        log.error(nerr);
+        throw nerr;
+      });
+  }
   async function getChats({ sessionId, noChats }) {
     log.print(`attempt to get chats with users`);
 
@@ -262,6 +303,7 @@ const actions = function (store, log) {
     createUser,
     getChats,
     getMessages,
+    getActivity,
     sendMessage,
     blockUser,
   };

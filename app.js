@@ -100,4 +100,15 @@ app.post("/chats/get", (req, res) => {
     );
 });
 
+app.post("/activity/get", (req, res) => {
+  actions
+    .getActivity({ ...req.body, ...req.signedCookies })
+    .then(({ msg, data }) =>
+      res.status(200).json({ result: "ok", message: msg, data: data })
+    )
+    .catch((err) =>
+      res.status(500).json({ result: "errored", message: err.message })
+    );
+});
+
 export { app };

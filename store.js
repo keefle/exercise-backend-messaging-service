@@ -22,6 +22,35 @@ function getUserChatKey(username, withUsername) {
   return `messaging-service:chats:${chatId}`;
 }
 
+function getUserActivityKey(username) {
+  return `messaging-service:users:${username}:activity`;
+}
+
+async function logSigninAttempt(username, info) {
+  try {
+    await redis.lpush(getUserActivityKey(username), JSON.stringify(info));
+  } catch (err) {
+    throw new Error(
+      `internal server error when logging new sign in attempt for user with username (${username})`
+    );
+  }
+}
+
+async function getActivityRange(username, start, stop) {
+  try {
+    const activityList = await redis.lrange(
+      getUserActivityKey(username),
+      start,
+      stop
+    );
+    return activityList.map(JSON.parse);
+  } catch (err) {
+    throw new Error(
+      `internal server error when getting signin attempts for user with username (${username})`
+    );
+  }
+}
+
 async function getMessagesRange(username, withUsername, start, stop) {
   const { blocked } = await getUserChatInfo(username, withUsername);
 
@@ -206,7 +235,6 @@ async function getUserBySessionId(sessionId) {
 
     return username;
   } catch (err) {
-    console.log(err);
     throw new Error(`sessionId provided has expired or is not valid`, {
       cause: err,
     });
@@ -229,7 +257,6 @@ async function setUserSessionId(username) {
 async function expireSessionId(sessionId) {
   const sessionKey = `messaging-service:sessions:${sessionId}`;
   return redis.del(sessionKey).catch((err) => {
-    console.log(err);
     throw new Error(`internal server error when expireing sessiondId`, {
       cause: err,
     });
@@ -239,6 +266,7 @@ async function expireSessionId(sessionId) {
 export default {
   setUserProfile,
   setUserSessionId,
+  logSigninAttempt,
 
   expireSessionId,
 
@@ -255,6 +283,7 @@ export default {
   getUserChatsWithKey,
   getUserKey,
   getUserProfile,
+  getActivityRange,
 
   userMustExist,
   userMustNotExist,
