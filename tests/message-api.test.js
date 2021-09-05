@@ -22,8 +22,8 @@ describe("Testing The Messaging API", () => {
       .send({ username: "jmo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
       });
 
     await api
@@ -31,8 +31,8 @@ describe("Testing The Messaging API", () => {
       .send({ username: "jmo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
         cookies = res.header["set-cookie"];
       });
@@ -54,8 +54,8 @@ describe("Testing The Messaging API", () => {
         .send(msg)
         .expect(200)
         .expect((res) => {
-          const msg = res.body;
-          expect(msg.result).toEqual("ok");
+          const result = res.body;
+          expect(result.status).toEqual("succeeded");
         });
     }
 
@@ -65,9 +65,9 @@ describe("Testing The Messaging API", () => {
       .send({ withUsername: "ali", noMsgs: 10 })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
-        expect(msg.data).toBeTruthy();
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
+        expect(result.data).toBeTruthy();
       })
       .then((res) => {
         const chatMsgs = res.body.data;
@@ -82,9 +82,9 @@ describe("Testing The Messaging API", () => {
       .send({ withUsername: "joe", noMsgs: 10 })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
-        expect(msg.data).toBeTruthy();
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
+        expect(result.data).toBeTruthy();
       })
       .then((res) => {
         const chatMsgs = res.body.data;
@@ -107,8 +107,8 @@ describe("Testing The Messaging API", () => {
       .send({ username: "jmo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
         cookies = res.header["set-cookie"];
       });
@@ -119,10 +119,10 @@ describe("Testing The Messaging API", () => {
       .send({ noChats: 10 })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
-        expect(msg.data).toBeTruthy();
-        expect(msg.data.map((chat) => chat.username).sort()).toStrictEqual(
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
+        expect(result.data).toBeTruthy();
+        expect(result.data.map((chat) => chat.username).sort()).toStrictEqual(
           ["ali", "joe"].sort()
         );
       });
@@ -135,8 +135,8 @@ describe("Testing The Messaging API", () => {
       .send({ username: "jmo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
         cookies = res.header["set-cookie"];
       });
@@ -147,8 +147,8 @@ describe("Testing The Messaging API", () => {
       .send({ toBlockUsername: "joe" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
       });
 
     await api
@@ -157,10 +157,10 @@ describe("Testing The Messaging API", () => {
       .send({ noChats: 10 })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
-        expect(msg.data).toBeTruthy();
-        expect(msg.data.map((chat) => chat.username).sort()).toStrictEqual(
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
+        expect(result.data).toBeTruthy();
+        expect(result.data.map((chat) => chat.username).sort()).toStrictEqual(
           ["ali"].sort()
         );
       });
@@ -170,11 +170,11 @@ describe("Testing The Messaging API", () => {
       .post("/chat/messages/get")
       .set("Cookie", cookies)
       .send({ withUsername: "joe", noMsgs: 10 })
-      .expect(500)
+      .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("errored");
-        expect(msg.data).toBeFalsy();
+        const result = res.body;
+        expect(result.status).toEqual("failed");
+        expect(result.data).toBeFalsy();
       });
   });
 });

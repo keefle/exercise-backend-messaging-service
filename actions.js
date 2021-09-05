@@ -4,26 +4,27 @@ const actions = function (store, log) {
   async function deauthenticateUser({ sessionId }) {
     log.print(`attempt to deauthenticate user via session id`);
 
-    const username = await store.getUserBySessionId(sessionId);
+    try {
+      const username = await store.getUserBySessionId(sessionId);
 
-    return store
-      .expireSessionId(sessionId)
-      .then(() => {
-        const result = {
-          msg: `successfully signed out user with username (${username})`,
+      const result = await store.expireSessionId(sessionId).then(() => {
+        return {
+          message: `successfully signed out user with username (${username})`,
+          status: "succeeded",
         };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when singing out user with username (${username})`,
-          { cause: err }
-        );
-
-        log.error(nerr);
-        throw nerr;
       });
+
+      log.print(result);
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when singing out user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function blockUser({ sessionId, toBlockUsername }) {
@@ -36,27 +37,29 @@ const actions = function (store, log) {
       throw err;
     }
 
-    const username = await store.getUserBySessionId(sessionId);
+    try {
+      const username = await store.getUserBySessionId(sessionId);
 
-    return store
-      .blockUserByUsername(username, toBlockUsername)
-      .then(() => {
-        const result = {
-          msg: `successfully blocked user with username (${toBlockUsername})`,
-        };
+      const result = await store
+        .blockUserByUsername(username, toBlockUsername)
+        .then(() => {
+          return {
+            status: "succeeded",
+            message: `successfully blocked user with username (${toBlockUsername})`,
+          };
+        });
 
-        log.print(result.msg);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when blocking user with username (${toBlockUsername})`,
-          { cause: err }
-        );
+      log.print(result);
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when blocking user with username (${toBlockUsername})`,
+        { cause: err }
+      );
 
-        log.error(nerr);
-        throw nerr;
-      });
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function authenticateUser({ username, password }) {
@@ -73,44 +76,54 @@ const actions = function (store, log) {
 
     await store.userMustExist(username);
 
-    const { passhash } = await store.getUserProfile(username);
+    try {
+      const { passhash } = await store.getUserProfile(username);
 
-    if (!(await bcrypt.compare(password, passhash))) {
-      const err = new Error(
-        `username (${username}) and/or password are incorrect`
-      );
-      store.logSigninAttempt(username, {
-        at: Date().toString(),
-        result: "Failed",
-      });
-      log.error(err);
-      throw err;
-    }
-
-    return store
-      .setUserSessionId(username)
-      .then((sessionId) => {
+      if (!(await bcrypt.compare(password, passhash))) {
         const result = {
-          msg: `successfully signed in with username (${username})`,
-          sessionId: sessionId,
+          status: "failed",
+          message: `username (${username}) and/or password are incorrect`,
+          data: "",
         };
 
         store.logSigninAttempt(username, {
           at: Date().toString(),
-          result: "Succeeded",
+          result: "Failed",
         });
-        log.print(result.msg);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when singing in user with username (${username})`,
-          { cause: err }
-        );
 
-        log.error(nerr);
-        throw nerr;
-      });
+        log.print(result);
+        return result;
+      }
+
+      const result = await store
+        .setUserSessionId(username)
+        .then((sessionId) => {
+          store.logSigninAttempt(username, {
+            at: Date().toString(),
+            result: "Succeeded",
+          });
+
+          return {
+            status: "succeeded",
+            message: `successfully signed in with username (${username})`,
+            data: sessionId,
+          };
+        });
+
+      log.print(result);
+
+      return result;
+    } catch (err) {
+      log.error(err);
+
+      const nerr = new Error(
+        `internal server error when singing in user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function getMessages({ sessionId, withUsername, noMsgs }) {
@@ -124,27 +137,39 @@ const actions = function (store, log) {
       );
     }
 
-    const username = await store.getUserBySessionId(sessionId);
+    try {
+      const username = await store.getUserBySessionId(sessionId);
 
-    return store
-      .getMessagesRange(username, withUsername, 0, noMsgs)
-      .then((chatMsgs) => {
-        const result = {
-          msg: `successfully got messages from chat between user with username (${username}) and user with username (${withUsername})`,
-          data: chatMsgs,
+      const { blocked } = await store.getUserChatInfo(username, withUsername);
+
+      if (blocked) {
+        return {
+          status: "failed",
+          message: `cannot get messages since it is from a blocked user with username (${username})`,
         };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when getting messages from chat between user with username (${username}) to user with username (${withUsername})`,
-          { cause: err }
-        );
+      }
 
-        log.error(nerr);
-        throw nerr;
-      });
+      const result = await store
+        .getMessagesRange(username, withUsername, 0, noMsgs)
+        .then((chatMsgs) => {
+          return {
+            status: "succeeded",
+            message: `successfully got messages from chat of user with (${username}) with user with username ${withUsername}`,
+            data: chatMsgs,
+          };
+        });
+
+      log.print(result);
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when getting messages from chat between user with username (${username}) to user with username (${withUsername})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function getActivity({ sessionId, noActivity }) {
@@ -156,29 +181,32 @@ const actions = function (store, log) {
       );
     }
 
-    const username = await store.getUserBySessionId(sessionId);
+    try {
+      const username = await store.getUserBySessionId(sessionId);
 
-    return store
-      .getActivityRange(username, 0, noActivity)
-      .then((activity) => {
-        const result = {
-          msg: `successfully got activity log`,
-          data: activity,
-        };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when getting activity log`,
-          {
-            cause: err,
-          }
-        );
+      const result = await store
+        .getActivityRange(username, 0, noActivity)
+        .then((activity) => {
+          return {
+            status: "succeeded",
+            message: `successfully got activity log of user with username (${username})`,
+            data: activity,
+          };
+        });
 
-        log.error(nerr);
-        throw nerr;
-      });
+      log.print(result);
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when getting activity log of user with username (${username})`,
+        {
+          cause: err,
+        }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
   async function getChats({ sessionId, noChats }) {
     log.print(`attempt to get chats with users`);
@@ -187,38 +215,42 @@ const actions = function (store, log) {
       throw new Error(`get chats request is missing number of chats`);
     }
 
-    const username = await store.getUserBySessionId(sessionId);
+    try {
+      const username = await store.getUserBySessionId(sessionId);
 
-    return store
-      .getChatsRange(username, 0, noChats)
-      .then((chatList) => {
-        const chatListpromises = chatList.map((withUsername) =>
-          store.getUserChatInfo(username, withUsername)
-        );
+      const result = await store
+        .getChatsRange(username, 0, noChats)
+        .then((chatList) => {
+          const chatListpromises = chatList.map((withUsername) =>
+            store.getUserChatInfo(username, withUsername)
+          );
 
-        return Promise.all(chatListpromises);
-      })
-      .then((chatList) =>
-        chatList.filter(({ blocked }) => {
-          return !blocked;
+          return Promise.all(chatListpromises);
         })
-      )
-      .then((chats) => {
-        const result = {
-          msg: `successfully got chat list`,
-          data: chats,
-        };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(`internal server error when getting chat list`, {
-          cause: err,
+        .then((chatList) =>
+          chatList.filter(({ blocked }) => {
+            return !blocked;
+          })
+        )
+        .then((chats) => {
+          return {
+            status: "succeeded",
+            message: `successfully got chat list of user with username (${username})`,
+            data: chats,
+          };
         });
 
-        log.error(nerr);
-        throw nerr;
+      log.print(result);
+
+      return result;
+    } catch (err) {
+      const nerr = new Error(`internal server error when getting chat list`, {
+        cause: err,
       });
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function sendMessage({ sessionId, receiverUsername, content }) {
@@ -232,32 +264,47 @@ const actions = function (store, log) {
       );
     }
 
-    const senderUsername = await store.getUserBySessionId(sessionId);
+    try {
+      const senderUsername = await store.getUserBySessionId(sessionId);
 
-    // check if the receiver was chatted with before, then check if they are blocked or not
-    await store.createChatWithUsernameIfNotPresent(
-      senderUsername,
-      receiverUsername
-    );
+      // check if the receiver was chatted with before, then check if they are blocked or not
+      await store.createChatWithUsernameIfNotPresent(
+        senderUsername,
+        receiverUsername
+      );
 
-    return store
-      .sendMessageToUser(senderUsername, receiverUsername, content)
-      .then(() => {
-        const result = {
-          msg: `successfully sent message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
+      const { blocked } = await store.getUserChatInfo(
+        senderUsername,
+        receiverUsername
+      );
+
+      if (blocked) {
+        return {
+          status: "failed",
+          message: `cannot send message to blocked user with username (${receiverUsername})`,
         };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when sending message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
-          { cause: err }
-        );
+      }
 
-        log.error(nerr);
-        throw nerr;
-      });
+      const result = await store
+        .sendMessageToUser(senderUsername, receiverUsername, content)
+        .then(() => {
+          return {
+            message: `successfully sent message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
+            status: "succeeded",
+          };
+        });
+
+      log.print(result);
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when sending message from user with username (${senderUsername}) to user with username (${receiverUsername})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   async function createUser({ username, password, extra }) {
@@ -268,33 +315,38 @@ const actions = function (store, log) {
       const err = new Error(
         `user signup request is missing username and/or password`
       );
+
       log.error(err);
       throw err;
     }
 
-    await store.userMustNotExist(username);
+    try {
+      await store.userMustNotExist(username);
 
-    const passsalt = await bcrypt.genSalt(10);
-    const passhash = await bcrypt.hash(password, passsalt);
+      const passsalt = await bcrypt.genSalt(10);
+      const passhash = await bcrypt.hash(password, passsalt);
 
-    return store
-      .setUserProfile({ username, passhash, extra })
-      .then(() => {
-        const result = {
-          msg: `successfully created user with username (${username})`,
-        };
-        log.print(result);
-        return result;
-      })
-      .catch((err) => {
-        const nerr = new Error(
-          `internal server error when creating user with username (${username})`,
-          { cause: err }
-        );
+      const result = await store
+        .setUserProfile({ username, passhash, extra })
+        .then(() => {
+          return {
+            status: "succeeded",
+            message: `successfully created user with username (${username})`,
+          };
+        });
 
-        log.error(nerr);
-        throw nerr;
-      });
+      log.print(result);
+
+      return result;
+    } catch (err) {
+      const nerr = new Error(
+        `internal server error when creating user with username (${username})`,
+        { cause: err }
+      );
+
+      log.error(nerr);
+      throw nerr;
+    }
   }
 
   return {

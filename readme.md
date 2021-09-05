@@ -28,5 +28,5 @@ Structure:
 * [X] Add block other `user` via username.
 * [X] Setup docker-compose for this project with (api (nodejs), database (redis))
 * [X] Add acitivity log tracking (store signin attempts).
+* [X] Add extra try catch to make sure only what is meant to be shown in error messages is shown to the user.
 * [ ] Go Over errors and store on log server (basic redis server for now, can be replaced with ELK stack in the future).
-* [ ] Add extra try catch to make sure only what is meant to be shown in error messages is shown to the user.

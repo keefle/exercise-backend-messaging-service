@@ -20,94 +20,91 @@ app.use(cookie("secret"));
 app.post("/auth/signin", (req, res) => {
   actions
     .authenticateUser(req.body)
-    .then(({ msg, sessionId }) =>
+    .then(({ status, message, data }) =>
       res
         .status(200)
-        .cookie("sessionId", sessionId, {
+        .cookie("sessionId", data, {
           httpOnly: true,
           maxAge: 24 * 60 * 60,
           signed: true,
           // TODO[mohammad]: add signed state when in production (setup NODE_ENV accordingly)
           secure: false,
         })
-        .json({ result: "ok", message: msg })
+        .json({ status, message })
     )
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/auth/signout", (req, res) => {
   actions
     .deauthenticateUser({ ...req.body, ...req.signedCookies })
-    .then(({ msg }) =>
-      res
-        .status(200)
-        .clearCookie("sessionId")
-        .json({ result: "ok", message: msg })
+    .then(({ status, message }) =>
+      res.status(200).clearCookie("sessionId").json({ status, message })
     )
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/auth/signup", (req, res) => {
   actions
     .createUser(req.body)
-    .then(({ msg }) => res.status(200).json({ result: "ok", message: msg }))
+    .then(({ status, message }) => res.status(200).json({ status, message }))
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/chat/messages/send", (req, res) => {
   actions
     .sendMessage({ ...req.body, ...req.signedCookies })
-    .then(({ msg }) => res.status(200).json({ result: "ok", message: msg }))
+    .then(({ status, message }) => res.status(200).json({ status, message }))
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/chat/messages/get", (req, res) => {
   actions
     .getMessages({ ...req.body, ...req.signedCookies })
-    .then(({ msg, data }) =>
-      res.status(200).json({ result: "ok", message: msg, data: data })
+    .then(({ status, message, data }) =>
+      res.status(200).json({ status, message, data })
     )
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/users/block", (req, res) => {
   actions
     .blockUser({ ...req.body, ...req.signedCookies })
-    .then(({ msg }) => res.status(200).json({ result: "ok", message: msg }))
+    .then(({ status, message }) => res.status(200).json({ status, message }))
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/chats/get", (req, res) => {
   actions
     .getChats({ ...req.body, ...req.signedCookies })
-    .then(({ msg, data }) =>
-      res.status(200).json({ result: "ok", message: msg, data: data })
+    .then(({ status, message, data }) =>
+      res.status(200).json({ status, message, data })
     )
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 
 app.post("/activity/get", (req, res) => {
   actions
     .getActivity({ ...req.body, ...req.signedCookies })
-    .then(({ msg, data }) =>
-      res.status(200).json({ result: "ok", message: msg, data: data })
+    .then(({ status, message, data }) =>
+      res.status(200).json({ status, message, data })
     )
     .catch((err) =>
-      res.status(500).json({ result: "errored", message: err.message })
+      res.status(500).json({ status: "errored", message: err.message })
     );
 });
 

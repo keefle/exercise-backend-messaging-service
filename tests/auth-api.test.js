@@ -20,8 +20,8 @@ describe("Testing The Auth API", () => {
       .send({ username: "mo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
       });
   });
 
@@ -31,83 +31,74 @@ describe("Testing The Auth API", () => {
       .send({ username: "mo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
       });
   });
 
   test("user can sign out", async () => {
-    let cookies = [];
-
-    await api
+    let cookies = await api
       .post("/auth/signin")
       .send({ username: "mo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
-
-        // get cookies containing sessiondId
-        cookies = res.headers["set-cookie"];
-      });
+      })
+      .then((res) => res.headers["set-cookie"]);
 
     await api
       .post("/auth/signout")
       .set("Cookie", cookies)
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
       });
   });
 
   test("user can get an activity log of auth attempts", async () => {
-    let cookies = [];
-
     await api
       .post("/auth/signin")
       .send({ username: "mo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
       });
 
     await api
       .post("/auth/signin")
       .send({ username: "mo", password: "noo" })
-      .expect(500)
+      .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("errored");
-        expect(res.headers["set-cookie"]).toBeFalsy();
+        const result = res.body;
+        console.log("HEEEERE", res.body);
+        expect(result.status).toEqual("failed");
       });
 
     await api
       .post("/auth/signin")
       .send({ username: "mo", password: "wrongpass" })
-      .expect(500)
+      .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("errored");
-        expect(res.headers["set-cookie"]).toBeFalsy();
+        const result = res.body;
+        expect(result.status).toEqual("failed");
       });
 
-    await api
+    let cookies = await api
       .post("/auth/signin")
       .send({ username: "mo", password: "1234" })
       .expect(200)
       .expect((res) => {
-        const msg = res.body;
-        expect(msg.result).toEqual("ok");
+        const result = res.body;
+        expect(result.status).toEqual("succeeded");
         expect(res.headers["set-cookie"][0]).toBeTruthy();
-
-        // get cookies containing sessiondId
-        cookies = res.headers["set-cookie"];
-      });
+      })
+      .then((res) => res.headers["set-cookie"]);
 
     await api
       .post("/activity/get")
@@ -115,6 +106,7 @@ describe("Testing The Auth API", () => {
       .send({ noActivity: 10 })
       .expect(200)
       .expect((res) => {
+        console.log(res.body);
         expect(
           res.body.data.filter((activitylog) => activitylog.result === "Failed")
             .length

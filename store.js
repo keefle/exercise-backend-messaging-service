@@ -52,14 +52,6 @@ async function getActivityRange(username, start, stop) {
 }
 
 async function getMessagesRange(username, withUsername, start, stop) {
-  const { blocked } = await getUserChatInfo(username, withUsername);
-
-  if (blocked) {
-    throw new Error(
-      `cannot get messages from chat with blocked user with username (${username})`
-    );
-  }
-
   try {
     const msgList = await redis.lrange(
       getUserChatKey(username, withUsername),
@@ -94,12 +86,14 @@ async function getChatsRange(username, start, stop) {
 
 async function blockUserByUsername(username, toBeBlockedUsername) {
   try {
-    await createChatWithUsernameIfNotPresent(username, toBeBlockedUsername);
+    // await createChatWithUsernameIfNotPresent(username, toBeBlockedUsername);
     await redis.hset(
       getUserChatsInfoKey(username),
       toBeBlockedUsername,
       JSON.stringify({ username: toBeBlockedUsername, blocked: true })
     );
+
+    return;
   } catch (err) {
     throw new Error(
       `internal server error when trying to block user with username (${toBeBlockedUsername})`,
@@ -109,14 +103,6 @@ async function blockUserByUsername(username, toBeBlockedUsername) {
 }
 
 async function sendMessageToUser(fromUsername, toUsername, content) {
-  const { blocked } = await getUserChatInfo(fromUsername, toUsername);
-
-  if (blocked) {
-    throw new Error(
-      `cannot send message to blocked user with username (${toUsername})`
-    );
-  }
-
   try {
     await redis.lpush(
       getUserChatKey(fromUsername, toUsername),
@@ -127,6 +113,8 @@ async function sendMessageToUser(fromUsername, toUsername, content) {
         id: uuidv4(),
       })
     );
+
+    return;
   } catch (err) {
     throw new Error(
       `internal server error when sending message form user with username (${fromUsername}) to user with username (${toUsername})`,
