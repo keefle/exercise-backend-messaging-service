@@ -99,4 +99,82 @@ describe("Testing The Messaging API", () => {
         .sort()
     );
   });
+
+  test("user can get chat list", async () => {
+    let cookies = [];
+    await api
+      .post("/auth/signin")
+      .send({ username: "jmo", password: "1234" })
+      .expect(200)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("ok");
+        expect(res.headers["set-cookie"][0]).toBeTruthy();
+        cookies = res.header["set-cookie"];
+      });
+
+    await api
+      .post("/chats/get")
+      .set("Cookie", cookies)
+      .send({ noChats: 10 })
+      .expect(200)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("ok");
+        expect(msg.data).toBeTruthy();
+        expect(msg.data.map((chat) => chat.username).sort()).toStrictEqual(
+          ["ali", "joe"].sort()
+        );
+      });
+  });
+
+  test("user can block chat with other user", async () => {
+    let cookies = [];
+    await api
+      .post("/auth/signin")
+      .send({ username: "jmo", password: "1234" })
+      .expect(200)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("ok");
+        expect(res.headers["set-cookie"][0]).toBeTruthy();
+        cookies = res.header["set-cookie"];
+      });
+
+    await api
+      .post("/users/block")
+      .set("Cookie", cookies)
+      .send({ toBlockUsername: "joe" })
+      .expect(200)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("ok");
+      });
+
+    await api
+      .post("/chats/get")
+      .set("Cookie", cookies)
+      .send({ noChats: 10 })
+      .expect(200)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("ok");
+        expect(msg.data).toBeTruthy();
+        expect(msg.data.map((chat) => chat.username).sort()).toStrictEqual(
+          ["ali"].sort()
+        );
+      });
+
+    console.log("HERE");
+    await api
+      .post("/chat/messages/get")
+      .set("Cookie", cookies)
+      .send({ withUsername: "joe", noMsgs: 10 })
+      .expect(500)
+      .expect((res) => {
+        const msg = res.body;
+        expect(msg.result).toEqual("errored");
+        expect(msg.data).toBeFalsy();
+      });
+  });
 });

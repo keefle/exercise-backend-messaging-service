@@ -1,6 +1,14 @@
 import express from "express";
 import cookie from "cookie-parser";
-import actions from "./actions.js";
+import createActions from "./actions.js";
+import store from "./store.js";
+
+const log = {
+  error: (err) => console.error(Date().toString(), ":", err),
+  print: (msg) => console.log(Date().toString(), ":", msg),
+};
+
+const actions = createActions(store, log);
 
 const app = express();
 app.use(express.json());
