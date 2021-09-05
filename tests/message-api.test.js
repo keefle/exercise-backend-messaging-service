@@ -1,8 +1,8 @@
 import supertest from "supertest";
-import { app } from "../app";
+import { app } from "../src/app";
 import ioredis from "ioredis";
 
-const redis = new ioredis();
+const redis = new ioredis(6379, "redis");
 
 const api = supertest(app);
 describe("Testing The Messaging API", () => {

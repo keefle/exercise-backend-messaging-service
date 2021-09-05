@@ -2,8 +2,7 @@ import ioredis from "ioredis";
 
 import { v4 as uuidv4 } from "uuid";
 
-// const redis = new ioredis(6379, "redis");
-const redis = new ioredis();
+const redis = new ioredis(6379, "redis");
 
 function getUserKey(username) {
   return `messaging-service:users:${username}`;
