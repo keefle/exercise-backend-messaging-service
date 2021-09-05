@@ -1,5 +1,5 @@
 import supertest from "supertest";
-import { app } from "../src/app";
+import { app } from "../src/app.js";
 import ioredis from "ioredis";
 
 const redis = new ioredis(6379, "redis");
